@@ -46,16 +46,23 @@ def pull_feed(feed_url, posts_to_show=None, cache_expires=None):
             entries = feed['entries']
             #if posts_to_show > 0 and len(entries) > posts_to_show:
             #    entries = entries[:posts_to_show]
-            posts = [ {
-                'title': entry.title,
-                'author': entry.author if entry.has_key('author') else '',
-                'summary': summarize(entry.summary if entry.has_key('summary') else entry.content[0]['value']),
-                'summary_html': summarize_html(entry.description if entry.has_key('description') else entry.content[0]['value']),
-                'content': entry.description if entry.has_key('description') else entry.content[0]['value'],
-                'url': entry.link,
-                'comments': entry.comments if entry.has_key('comments') else '',
-                'published': datetime.datetime.fromtimestamp(time.mktime(entry.updated_parsed)) if entry.has_key('updated_parsed') else '', }
-                        for entry in entries ]
+            posts = []
+            for entry in entries:
+                author = entry.author if entry.has_key('author') else ''
+                summary = summarize(entry.summary if entry.has_key('summary') else entry.content[0]['value'])
+                summary_html = summarize_html(entry.description if entry.has_key('description') else entry.content[0]['value'])
+                content = entry.description if entry.has_key('description') else entry.content[0]['value']
+                comments = entry.comments if entry.has_key('comments') else ''
+                published = datetime.datetime.fromtimestamp(time.mktime(entry.updated_parsed)) if entry.has_key('updated_parsed') else ''
+                posts += [{
+                    'title': entry.title,
+                    'author': author,
+                    'summary': summary,
+                    'summary_html': summary_html,
+                    'content': content,
+                    'url': entry.link,
+                    'comments': comments,
+                    'published': published, }]
         except:
             if settings.DEBUG:
                 raise
