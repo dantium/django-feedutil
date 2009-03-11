@@ -31,6 +31,12 @@ def summarize_html(text):
     return template.defaultfilters.truncatewords_html(text,
                             FEEDUTIL_SUMMARY_HTML_WORDS) + ' ...'
 
+def check_key(dict,key,alt):
+    if dict.has_key(key):
+        return dict[key]
+    else:
+        return alt
+
 def pull_feed(feed_url, posts_to_show=None, cache_expires=None):
     if posts_to_show is None: posts_to_show = FEEDUTIL_NUM_POSTS
     if cache_expires is None: cache_expires = FEEDUTIL_CACHE_MIN
@@ -46,23 +52,17 @@ def pull_feed(feed_url, posts_to_show=None, cache_expires=None):
             entries = feed['entries']
             #if posts_to_show > 0 and len(entries) > posts_to_show:
             #    entries = entries[:posts_to_show]
-            posts = []
-            for entry in entries:
-                author = entry.author if entry.has_key('author') else ''
-                summary = summarize(entry.summary if entry.has_key('summary') else entry.content[0]['value'])
-                summary_html = summarize_html(entry.description if entry.has_key('description') else entry.content[0]['value'])
-                content = entry.description if entry.has_key('description') else entry.content[0]['value']
-                comments = entry.comments if entry.has_key('comments') else ''
-                published = datetime.datetime.fromtimestamp(time.mktime(entry.updated_parsed)) if entry.has_key('updated_parsed') else ''
-                posts += [{
-                    'title': entry.title,
-                    'author': author,
-                    'summary': summary,
-                    'summary_html': summary_html,
-                    'content': content,
-                    'url': entry.link,
-                    'comments': comments,
-                    'published': published, }]
+            posts = [{
+                'title': entry.title,
+                'author': check_key(entry,'author',''),
+                'summary': summarize((lambda: entry['summary'], lambda: entry.content[0]['value'])[not entry.has_key('summary')]()),
+                'summary_html': summarize_html((lambda: entry['description'], lambda: entry.content[0]['value'])[not entry.has_key('description')]()),
+                'content': (lambda: entry['description'], lambda: entry.content[0]['value'])[not entry.has_key('description')](),
+                'url': entry.link,
+                'comments': check_key(entry,'comments',''),
+                'published': (lambda: datetime.datetime.fromtimestamp(time.mktime(entry.updated_parsed)), '')[not entry.has_key('updated_parsed')](), }
+                     for entry in entries ]
+
         except:
             if settings.DEBUG:
                 raise
